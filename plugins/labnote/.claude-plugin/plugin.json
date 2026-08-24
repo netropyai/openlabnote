@@ -1,0 +1,10 @@
+{
+  "name": "labnote",
+  "version": "0.1.0",
+  "description": "개발 기록(세션·git)을 일자별 연구노트로 정리하는 openlabnote 플러그인 — /labnote 정리 · /labnote-capture 순간 기록 · /labnote-setup 설정",
+  "author": {
+    "name": "openlabnote"
+  },
+  "homepage": "https://github.com/netropyai/openlabnote",
+  "license": "Apache-2.0"
+}

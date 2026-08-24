@@ -1,0 +1,18 @@
+{
+  "name": "openlabnote",
+  "owner": {
+    "name": "openlabnote",
+    "url": "https://github.com/netropyai"
+  },
+  "metadata": {
+    "description": "openlabnote — 개발 기록을 연구노트로",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "labnote",
+      "source": "./plugins/labnote",
+      "description": "개발 기록(Claude Code·Codex·git)을 일자별 연구노트로 정리 — /labnote, /labnote-capture, /labnote-setup"
+    }
+  ]
+}

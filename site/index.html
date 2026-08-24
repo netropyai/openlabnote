@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>openlabnote — 연구노트, 쓰지 말고 만드세요</title>
+<meta name="description" content="AI 코딩 세션과 git 커밋을 하루 한 장의 연구노트(md)로 자동 정리하는 오픈소스 CLI. 내 Claude·Codex 구독으로 동작, raw 로그는 로컬에만.">
+<meta property="og:title" content="openlabnote">
+<meta property="og:description" content="연구노트, 쓰지 말고 만드세요 — 개발 기록이 하루 한 장의 연구노트가 됩니다.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%230E1713%22/><text x=%2250%22 y=%2268%22 font-size=%2252%22 text-anchor=%22middle%22 fill=%22%238FE3B7%22 font-family=%22monospace%22>▚</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#F6F5F0; --ink:#191D1A; --mut:#5A6159; --green:#0B7A4B;
+    --line:#E2E0D6; --card:#FFFFFF; --term:#0E1713; --tgreen:#8FE3B7; --tdim:#5F8A73;
+    --marker:#DCEDA6; --soft:#ECEAE2; --amber:#8A6D1A; --ambersoft:#F1EDDD;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);line-height:1.65;
+       font-family:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo",sans-serif}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+  .wrap{max-width:980px;margin:0 auto;padding:0 clamp(20px,5vw,48px)}
+  a{color:var(--green)}
+  ::selection{background:var(--marker)}
+
+  nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid var(--line)}
+  nav .logo{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:16px;color:var(--ink);text-decoration:none}
+  nav .logo b{color:var(--green)}
+  nav .links{display:flex;gap:20px;align-items:center;font-size:14px}
+  nav .links a{color:var(--mut);text-decoration:none}
+  nav .links a:hover,nav .links a:focus-visible{color:var(--green);outline:none}
+  nav .gh{font-family:"IBM Plex Mono",monospace;font-size:12.5px;border:1px solid var(--line);border-radius:6px;padding:4px 12px;color:var(--ink) !important}
+  nav .gh:hover{border-color:var(--green)}
+
+  .hero{padding:72px 0 56px}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12.5px;color:var(--green);letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  h1{font-size:clamp(32px,5.6vw,48px);line-height:1.2;margin:14px 0 16px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  .hl{background:linear-gradient(transparent 62%, var(--marker) 62%)}
+  .sub{font-size:17px;color:var(--mut);max-width:58ch;margin:0 0 28px}
+  .tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px 8px 0 0;border-bottom:none;overflow:hidden}
+  .tabs button{font-family:"IBM Plex Mono",monospace;font-size:12px;padding:8px 15px;border:none;background:var(--soft);color:var(--mut);cursor:pointer}
+  .tabs button[aria-selected="true"]{background:var(--term);color:var(--tgreen)}
+  .tabs button:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
+  .cmd{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--term);color:#D7EFE0;
+       font-family:"IBM Plex Mono",monospace;font-size:15px;padding:15px 18px;border-radius:0 8px 8px 8px;max-width:580px}
+  .cmd .p{color:var(--tdim)}
+  .cmd .cp{font-family:inherit;font-size:11px;color:var(--tgreen);border:1px solid #2A4636;border-radius:5px;padding:4px 10px;background:none;cursor:pointer}
+  .cmd .cp:focus-visible{outline:2px solid var(--tgreen)}
+
+  .term{margin:36px 0 0;background:var(--term);border-radius:10px;padding:20px 22px;font-family:"IBM Plex Mono",monospace;
+        font-size:13.5px;line-height:1.8;color:#C9E4D3;overflow-x:auto}
+  .term .g{color:var(--tgreen)} .term .d{color:var(--tdim)} .term .y{color:#E8D28A}
+  .cur{display:inline-block;width:8px;height:15px;background:var(--tgreen);vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  @media (prefers-reduced-motion: reduce){.cur{animation:none}}
+
+  section{padding:56px 0;border-top:1px solid var(--line)}
+  h2{font-size:26px;margin:0 0 8px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  .lead{color:var(--mut);font-size:15.5px;max-width:60ch;margin:0 0 24px}
+
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:680px){.steps{grid-template-columns:1fr}}
+  .step{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:20px}
+  .step .no{font-family:"IBM Plex Mono",monospace;color:var(--green);font-size:12px;font-weight:600}
+  .step b{display:block;font-size:16.5px;margin:8px 0 5px}
+  .step p{margin:0;font-size:14px;color:var(--mut)}
+  .step code{font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--soft);padding:1px 6px;border-radius:4px}
+
+  .notex{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:30px;align-items:start}
+  @media (max-width:760px){.notex{grid-template-columns:1fr}}
+  .paper{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px 26px;font-size:13.5px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .paper .h{font-weight:700;font-size:16px;border-bottom:2px solid var(--ink);padding-bottom:7px;margin-bottom:11px}
+  .paper .t{font-weight:700;color:var(--green);margin:11px 0 4px}
+  .paper ul{margin:0;padding-left:17px;color:#3A403A}
+  .paper li{margin:3px 0}
+  .paper .mk{font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--soft);border-radius:3px;padding:0 5px}
+
+  .prom{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:680px){.prom{grid-template-columns:1fr}}
+  .prom .b{border-left:3px solid var(--green);background:var(--card);border-radius:0 8px 8px 0;padding:16px 20px}
+  .prom b{display:block;margin-bottom:4px;font-size:15.5px}
+  .prom p{margin:0;font-size:14px;color:var(--mut)}
+
+  .hrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .hcard{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:14px 16px;font-size:13.5px}
+  .hcard b{font-family:"IBM Plex Mono",monospace;font-size:13.5px}
+  .st{display:inline-block;font-size:11px;font-family:"IBM Plex Mono",monospace;border-radius:99px;padding:1px 9px;margin-left:6px}
+  .st.ok{background:#DFF0E6;color:var(--green)} .st.soon{background:var(--ambersoft);color:var(--amber)}
+  .hcard code{display:block;margin-top:9px;font-family:"IBM Plex Mono",monospace;font-size:11px;background:var(--term);color:var(--tgreen);border-radius:5px;padding:7px 10px;overflow-x:auto;white-space:nowrap}
+
+  .cmp{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+  .cmp table{border-collapse:collapse;width:100%;min-width:620px;font-size:13.5px}
+  .cmp th,.cmp td{padding:11px 15px;border-top:1px solid var(--soft);text-align:left;vertical-align:top}
+  .cmp thead th{border-top:none;font-size:13.5px}
+  .cmp thead th.cl{color:var(--green)}
+  .cmp td:first-child{color:var(--mut);white-space:nowrap;font-size:12.5px}
+  .yes{color:var(--green);font-weight:500} .self{color:var(--amber)}
+  .teaser{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:var(--term);border-radius:10px;padding:18px 22px}
+  .teaser p{margin:0;color:#D7EFE0;font-size:14.5px;flex:1;min-width:240px}
+  .teaser b{color:var(--tgreen)}
+  .teaser a{background:var(--tgreen);color:var(--term);border-radius:6px;padding:9px 18px;font-weight:700;font-size:13.5px;text-decoration:none}
+
+  details{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:13px 17px;margin-top:8px;font-size:14.5px}
+  summary{font-weight:500;cursor:pointer}
+  summary:focus-visible{outline:2px solid var(--green);border-radius:4px}
+  details p{color:var(--mut);margin:9px 0 0;font-size:13.5px}
+  details code{font-family:"IBM Plex Mono",monospace;font-size:12px;background:var(--soft);padding:1px 5px;border-radius:4px}
+
+  footer{display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between;padding:28px 0 40px;border-top:1px solid var(--line);font-size:13px;color:#8A9088}
+  footer a{color:#8A9088}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="/">open<b>lab</b>note</a>
+    <span class="links">
+      <a href="https://github.com/netropyai/openlabnote#readme">Docs</a>
+      <a href="#cloud">Cloud</a>
+      <a class="gh" href="https://github.com/netropyai/openlabnote">GitHub ★</a>
+      <a class="mono" style="font-size:12px" href="https://github.com/netropyai/openlabnote/blob/main/README.md">EN</a>
+    </span>
+  </nav>
+
+  <header class="hero">
+    <div class="kicker">open-source research notes for AI-native teams</div>
+    <h1>연구노트, 쓰지 말고 <span class="hl">만드세요</span></h1>
+    <p class="sub">AI 코딩 세션의 프롬프트와 git 커밋이 이미 그날의 기록입니다. openlabnote가 그 기록을 모아 하루 한 장의 연구노트(md)로 정리합니다 — 당신의 Claude·Codex 구독으로, 추가 비용 없이.</p>
+    <div class="tabs" role="tablist" aria-label="설치 방법">
+      <button role="tab" aria-selected="true" data-cmd="npx openlabnote">npx</button>
+      <button role="tab" aria-selected="false" data-cmd="npm install -g openlabnote">npm -g</button>
+      <button role="tab" aria-selected="false" data-cmd="/plugin marketplace add netropyai/openlabnote">Claude Code</button>
+    </div>
+    <div class="cmd"><span><span class="p">$</span> <span id="cmdline">npx openlabnote</span></span><button class="cp" onclick="copyCmd(this)">copy</button></div>
+
+    <div class="term" aria-label="oln today 실행 데모">
+      <div><span class="d">$</span> oln today</div>
+      <div><span class="g">①</span> 수집   git 8커밋 · claude-code 12세션 <span class="d">→ 과제 2건 매핑</span></div>
+      <div><span class="g">②</span> 작성   엔진 claude -p <span class="d">(41s)</span></div>
+      <div><span class="g">③</span> 검사   통과 — 불릿 9 · 주제 3</div>
+      <div><span class="g">✓</span> 저장   ~/openlabnote/neural-rendering/<span class="y">2026-08-21.md</span></div>
+      <div><span class="d">$</span> <span class="cur"></span></div>
+    </div>
+  </header>
+
+  <section id="how">
+    <h2>기록은 이미 있습니다</h2>
+    <div class="steps" style="margin-top:20px">
+      <div class="step"><span class="no">01 · 수집</span><b>세션과 커밋에서</b><p>Claude Code·Codex 세션, git 커밋을 날짜별로 수집합니다. 원격 개발 서버도 SSH로 — <code>serverA:~/dev/repo</code>. 결과 스크린샷·플롯 같은 그림 후보도 함께 찾습니다.</p></div>
+      <div class="step"><span class="no">02 · 작성</span><b>내 구독의 AI가 씁니다</b><p>요약·작성은 당신의 Claude/Codex 구독이 수행합니다. API 키도, 추가 비용도 없습니다. 커밋은 "무엇을", 프롬프트는 "왜"를 남깁니다.</p></div>
+      <div class="step"><span class="no">03 · 검사·저장</span><b>내 폴더의 마크다운으로</b><p>포맷 검사(<code>oln lint</code>)를 통과한 노트가 내가 지정한 폴더에 md로 쌓입니다. 웹 뷰어(<code>oln ui</code>)로 훑어보고, 제출용 PNG·PDF로 내보내세요(<code>oln export</code>).</p></div>
+    </div>
+  </section>
+
+  <section id="example">
+    <div class="notex">
+      <div>
+        <h2>이런 노트가 나옵니다</h2>
+        <p class="lead">오른쪽은 openlabnote를 만든 날, openlabnote가 스스로 쓴 실제 노트입니다. 발견·결정·수치만 남기고 잡담은 버립니다 — 불릿 110자 제한, 하루 한 장.</p>
+        <p class="lead">형식 규칙(주제 ≤4 · 메타서술 금지 · 그림은 실존 파일만)은 공개 스펙 <a href="https://github.com/netropyai/openlabnote/blob/main/docs/note-format.md">note-format v1</a>이 정의하고 린터가 강제합니다.</p>
+      </div>
+      <div class="paper">
+        <div class="h">@August 21, 2026</div>
+        <div class="t">### Openlabnote Kickoff</div>
+        <ul><li>Kicked off openlabnote: auto-generate R&amp;D 연구노트 from LLM harness logs and git history</li>
+        <li><span class="mk">결정:</span> split into an OSS note generator and a paid hosting/evidence service</li>
+        <li>Harness-agnostic by design — Claude Code, Cursor, Codex all work as runtime and source</li></ul>
+        <div class="t">### Product Decisions</div>
+        <ul><li><span class="mk">결정:</span> keep notes as plain md; rendering optional — text is easier to manage</li>
+        <li>Onboarding: scan the environment first, then structured Q&amp;A</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <h2>세션 로그는 당신 컴퓨터를 떠나지 않습니다</h2>
+    <div class="prom" style="margin-top:20px">
+      <div class="b"><b>raw는 로컬 전용</b><p>프롬프트 원문이 담긴 수집 데이터는 요약에만 쓰이고 어디로도 전송되지 않습니다. 밖으로 나가는 것은 완성된 노트뿐 — 그마저도 시크릿 스캔이 차단 게이트로 지킵니다.</p></div>
+      <div class="b"><b>내 구독으로 동작</b><p>별도 API 키·토큰 과금이 없습니다. 노트 작성은 이미 쓰고 있는 Claude Code / Codex 구독 안에서 일어납니다.</p></div>
+    </div>
+  </section>
+
+  <section id="harness">
+    <h2>쓰던 도구 그대로</h2>
+    <div class="hrow" style="margin-top:20px">
+      <div class="hcard"><b>Claude Code</b><span class="st ok">플러그인</span><code>/plugin marketplace add netropyai/openlabnote</code></div>
+      <div class="hcard"><b>Codex</b><span class="st ok">소스 + 엔진</span><code>oln setup engine → codex exec</code></div>
+      <div class="hcard"><b>Cursor</b><span class="st soon">수집기 예정</span><code>adapters/cursor — 룰 파일로 지금도 작성 가능</code></div>
+      <div class="hcard"><b>원격 서버</b><span class="st ok">SSH</span><code>oln setup remotes</code></div>
+    </div>
+  </section>
+
+  <section id="cloud">
+    <h2>정부과제 증빙이 필요하다면</h2>
+    <p class="lead">openlabnote는 무료로 완결됩니다. 다만 국가연구개발사업 전자연구노트는 세 가지를 요구합니다 — 기록자 전자서명, 시점 자동기록, 위·변조 확인. 그 세 가지가 OpenLabnote Cloud가 존재하는 이유입니다.</p>
+    <div class="cmp"><table>
+      <thead><tr><th></th><th>openlabnote (무료·OSS)</th><th class="cl">+ OpenLabnote Cloud</th></tr></thead>
+      <tbody>
+        <tr><td>노트 생성·로컬 md 보관</td><td class="yes">✓ 전부 포함</td><td class="yes">✓ 동일</td></tr>
+        <tr><td>제출용 export (PNG·PDF)</td><td class="yes">✓ 포함</td><td class="yes">✓ 동일</td></tr>
+        <tr><td>기록자 전자서명</td><td class="self">직접 구성</td><td class="yes">✓ 기기 서명키 + 점검자 확인 서명</td></tr>
+        <tr><td>시점 인증(타임스탬프)</td><td class="self">—</td><td class="yes">✓ 매시 배치 앵커, 제3자 검증 가능</td></tr>
+        <tr><td>위·변조 확인</td><td class="self">git 이력으로 자체 관리</td><td class="yes">✓ append-only + 머클 경로 단건 검증</td></tr>
+        <tr><td>장기 보존·감사 대응</td><td class="self">본인 책임</td><td class="yes">✓ 보존 보증 + 검증패키지 export</td></tr>
+        <tr><td>검증</td><td class="yes">✓ oln verify (오프라인)</td><td class="yes">✓ 서비스가 사라져도 표준 도구로 재검증</td></tr>
+      </tbody>
+    </table></div>
+    <div class="teaser"><p><b>OpenLabnote Cloud</b> — 준비 중입니다. GitHub에서 Watch하면 출시 소식을 받을 수 있습니다.</p><a href="https://github.com/netropyai/openlabnote">GitHub에서 소식 받기</a></div>
+  </section>
+
+  <section id="faq">
+    <h2>자주 묻는 질문</h2>
+    <details><summary>쓰고 있는 전자연구노트 서비스가 있는데 같이 쓸 수 있나요?</summary><p>네. openlabnote는 노트를 만드는 도구라서 어디에 제출할지는 자유입니다. 노트는 md로 남고, <code>oln export</code>가 만든 일자별 PNG·기간 PDF를 쓰던 서비스에 그대로 올리면 됩니다.</p></details>
+    <details><summary>세션 내용이 외부로 전송되나요?</summary><p>아니요. raw 수집 데이터는 로컬에서만 읽혀 요약에 쓰입니다. 요약(작성) 자체도 당신의 하네스 구독 안에서 실행됩니다.</p></details>
+    <details><summary>AI 사용 비용이 따로 드나요?</summary><p>아니요. 이미 쓰는 Claude Code/Codex 구독으로 동작합니다. 노트 1건에 보통 30~60초의 세션이 쓰입니다.</p></details>
+    <details><summary>이것만으로 지침상 전자연구노트가 되나요?</summary><p>로컬 md는 훌륭한 기록이지만, 지침의 3요건(전자서명·시점기록·위변조 확인)은 별도 인프라가 필요합니다. 그 부분이 OpenLabnote Cloud(준비 중)이고, 그때까지는 export 산출물을 기존 서비스에 제출하는 방식을 권합니다.</p></details>
+    <details><summary>노트 품질을 제가 통제할 수 있나요?</summary><p>네. 작성 지침이 마크다운 파일이라 <code>oln instructions write --edit</code>로 내 문체·규칙으로 바꿀 수 있고, 포맷 린터가 형식을 강제합니다.</p></details>
+  </section>
+
+  <footer>
+    <span class="mono">open<b style="color:var(--green)">lab</b>note — Apache-2.0</span>
+    <span><a href="https://github.com/netropyai/openlabnote">GitHub</a> · <a href="https://github.com/netropyai/openlabnote#readme">Docs</a> · <a href="https://github.com/netropyai/openlabnote/blob/main/docs/note-format.md">note-format v1</a></span>
+  </footer>
+</div>
+<script>
+  document.querySelectorAll('.tabs button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.tabs button').forEach(function(x){ x.setAttribute('aria-selected','false'); });
+      b.setAttribute('aria-selected','true');
+      document.getElementById('cmdline').textContent = b.dataset.cmd;
+    });
+  });
+  function copyCmd(btn){
+    try{
+      navigator.clipboard.writeText(document.getElementById('cmdline').textContent);
+      btn.textContent='copied'; setTimeout(function(){ btn.textContent='copy'; },1200);
+    }catch(e){}
+  }
+</script>
+</body>
+</html>
